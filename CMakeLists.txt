@@ -4,7 +4,7 @@ project(vpipe)
 find_package(OpenCV REQUIRED)
 
 #set(CMAKE_CXX_COMPILE_FLAGS "-std=c++0x -O3")
-set(CMAKE_CXX_FLAGS "-std=c++11 -g")
+set(CMAKE_CXX_FLAGS "-std=c++14 -g")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 include_directories(

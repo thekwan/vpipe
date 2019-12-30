@@ -7,6 +7,15 @@
 #ifndef __ORB_HPP__
 #define __ORB_HPP__
 
+#include "types.hpp"
+#include "job.hpp"
 
+class FeatureExtractorOrb : Job {
+public:
+    FeatureExtractorOrb(program_args &pargs) : _pargs(pargs) {}
+    ~FeatureExtractorOrb(void) {}
+private:
+    program_args  &_pargs;
+};
 
 #endif
