@@ -10,10 +10,13 @@
 #include "types.hpp"
 #include "job.hpp"
 
-class FeatureExtractorOrb : Job {
+class FeatureExtractorOrb : public Job {
 public:
-    FeatureExtractorOrb(program_args &pargs) : _pargs(pargs) {}
+    FeatureExtractorOrb(std::string name, program_args &pargs) 
+        : Job(name), _pargs(pargs) {}
     ~FeatureExtractorOrb(void) {}
+    virtual bool Run(job_context context) { return true; }
+    virtual bool Stop(void) { return true; }
 private:
     program_args  &_pargs;
 };

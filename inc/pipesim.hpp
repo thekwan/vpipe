@@ -13,17 +13,22 @@
 #include "types.hpp"
 #include "job.hpp"
 #include "orb.hpp"
+#include "read_input.hpp"
 
 class PipeSimulator {
 public:
+    PipeSimulator() {}
+    ~PipeSimulator() {}
     void CmdParser(int argc, char *argv[]);
-    void CreateJobs(program_args args);
+    void CreateJobs(void);
     void Run(void);
 private:
-    std::queue<std::unique_ptr<Job>> jqueue;
-    std::string iflist;
-    std::string oflist;
-    std::string main_cmd;
+    std::queue<std::shared_ptr<Job>> _jqueue;
+    std::string   _iflist;
+    std::string   _oflist;
+    std::string   _main_cmd;
+    program_args  _args;
+    job_context   _context;
 };
 
 #endif

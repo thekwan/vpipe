@@ -7,6 +7,9 @@
 #ifndef __JOB_HPP__
 #define __JOB_HPP__
 
+#include <string>
+#include "types.hpp"
+
 enum class JobStatus {
     RUN,
     STOP,
@@ -14,13 +17,19 @@ enum class JobStatus {
 
 class Job {
 public:
-    virtual bool Run(void);
-    virtual bool Stop(void);
+    Job(std::string name) : _name(name) {}
+    ~Job() {}
+    virtual bool Run(job_context context) = 0;
+    virtual bool Stop(void) = 0;
     JobStatus GetStatus() {
-        return jstatus;
+        return _jstatus;
+    }
+    std::string getName() {
+        return _name;
     }
 private:
-    JobStatus jstatus;
+    std::string _name;
+    JobStatus _jstatus;
 };
 
 #endif

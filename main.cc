@@ -14,6 +14,7 @@ int main(int argc, char *argv[]) {
     PipeSimulator psim;
 
     psim.CmdParser(argc, argv);
+    psim.CreateJobs();
     psim.Run();
 
     return 0;
