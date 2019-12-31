@@ -25,6 +25,13 @@ private:
     const std::string _fileName;
 };
 
+/* Keypoint & descriptor data structure
+ */
+typedef struct _KeyPointAndDesc {
+    std::vector<cv::KeyPoint>  keypoints;
+    cv::Mat  descriptors;
+} KeyPointAndDesc;
+
 class ImageDB {
 public:
     ImageDB(std::string fileNameList);
@@ -34,6 +41,7 @@ public:
     std::shared_ptr<Image> getImage(int index);
 private:
     std::vector<std::shared_ptr<Image>>  _images;
+    std::vector<KeyPointAndDesc> _keypoint_desc;
 };
 
 #endif

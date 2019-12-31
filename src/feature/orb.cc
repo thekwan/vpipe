@@ -30,6 +30,8 @@ bool FeatureExtractorOrb::RunNoThread(job_context &context) {
         h_orb->detectAndCompute( image->getDataPtr(), cv::noArray(), kptr, desc );
 
 #if 1
+        //std::cout << "keypoint # is " << kptr.size() << "\t";
+        //std::cout << "desc size is " << desc.size() << "\n";
         // DEBUG: display found keypointer
         cv::Mat kptr_image;
         cv::drawKeypoints( image->getDataPtr(), kptr, kptr_image, cv::Scalar(0,0,255), cv::DrawMatchesFlags::DEFAULT);
