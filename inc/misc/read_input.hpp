@@ -14,7 +14,7 @@ class ReadImages : public Job {
 public:
     ReadImages(std::string name, program_args &pargs);
     ~ReadImages(void) {}
-    virtual bool Run(job_context context);
+    virtual bool Run(job_context &context);
     virtual bool Stop(void);
 private:
     program_args  &_pargs;

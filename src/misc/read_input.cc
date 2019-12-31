@@ -15,10 +15,10 @@ ReadImages::ReadImages(std::string name, program_args &pargs) : Job(name), _parg
 
 }
 
-bool ReadImages::Run(job_context context) {
+bool ReadImages::Run(job_context &context) {
     context.images = std::make_shared<ImageDB>(_iflist);
 
-#if 1   // DEBUG
+#if 0   // DEBUG
     // display each image on window
     std::cout << "ReadImages::Run() message\n";
     cv::namedWindow("Window", cv::WINDOW_NORMAL);
@@ -29,6 +29,7 @@ bool ReadImages::Run(job_context context) {
         cv::imshow("Window", img->getDataPtr());
         cv::waitKey(500);
     }
+	cv::destroyWindow("Window");
     std::cout << std::endl;
 #endif
 

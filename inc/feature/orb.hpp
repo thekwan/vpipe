@@ -15,9 +15,10 @@ public:
     FeatureExtractorOrb(std::string name, program_args &pargs) 
         : Job(name), _pargs(pargs) {}
     ~FeatureExtractorOrb(void) {}
-    virtual bool Run(job_context context) { return true; }
+    virtual bool Run(job_context &context);
     virtual bool Stop(void) { return true; }
 private:
+    bool RunNoThread(job_context &context);
     program_args  &_pargs;
 };
 

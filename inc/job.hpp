@@ -19,7 +19,7 @@ class Job {
 public:
     Job(std::string name) : _name(name) {}
     ~Job() {}
-    virtual bool Run(job_context context) = 0;
+    virtual bool Run(job_context &context) = 0;
     virtual bool Stop(void) = 0;
     JobStatus GetStatus() {
         return _jstatus;
