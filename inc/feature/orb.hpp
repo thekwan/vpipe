@@ -13,7 +13,12 @@
 typedef struct _imageTile {
     cv::Point2f  gPos;  // tile global position
     cv::Mat      tile;  // image tile data
+    int          max_keypoint;
 } imageTile;
+
+typedef struct _threadDesc {
+    imageTile   data;
+} threadDesc;
 
 class FeatureExtractorOrb : public Job {
 public:
@@ -24,11 +29,18 @@ public:
     virtual bool Stop(void) { return true; }
 private:
     bool RunNoThread(job_context &context);
+    bool RunTileThread(const cv::Mat &image);
     void divideImageIntoTiles(
             std::vector<imageTile> &tiles,
-            cv::Mat imageData, int level, int max_keypoint );
+            cv::Mat imageData, cv::Point2f gPos, int level, 
+            int xdiv, int ydiv, int max_keypoint );
 
     program_args  &_pargs;
+    /* Thread queue:
+     * pending_q: Q for threads to wait therad start.
+     * finish_q: Q for threads to finish its working.
+     */
+    std::queue<threadDesc>  pending_q, finish_q;
 };
 
 #endif
