@@ -17,22 +17,6 @@ ReadImages::ReadImages(std::string name, program_args &pargs) : Job(name), _parg
 
 bool ReadImages::Run(job_context &context) {
     context.imageDB.readImages(_iflist);
-
-#if 0   // DEBUG
-    // display each image on window
-    std::cout << "ReadImages::Run() message\n";
-    cv::namedWindow("Window", cv::WINDOW_NORMAL);
-    cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
-    for(int i = 0 ; i < context.images->getImageNum() ; i++) {
-        auto img = context.images->getImage(i);
-        std::cout << "Read a file: " << img->getFileName() << std::endl;
-        cv::imshow("Window", img->getDataPtr());
-        cv::waitKey(500);
-    }
-	cv::destroyWindow("Window");
-    std::cout << std::endl;
-#endif
-
     return true;
 }
 

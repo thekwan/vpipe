@@ -41,6 +41,7 @@ void PipeSimulator::CreateJobs(void) {
 
     if( _main_cmd.compare( "auto_reconstruct" ) == 0 ) {
         _jqueue.push( std::make_shared<FeatureExtractorOrb>("Feature extractor ORB",_args) );
+        _jqueue.push( std::make_shared<FeatureMatcher>("Feature matcher ORB",_args) );
     }
     else if( _main_cmd.compare( "feature_extract_orb" ) == 0 ) {
         _jqueue.push( std::make_shared<FeatureExtractorOrb>("Feature extractor ORB",_args) );

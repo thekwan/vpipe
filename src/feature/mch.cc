@@ -4,23 +4,34 @@
  * Copyright (C), Deokhwan Kim, all rights reserved.
  */
 
-#include <opencv2/opencv.hpp>
-#include "orb.hpp"
+#include "mch.hpp"
 
-bool FeatureExtractorOrb::Run(job_context &context) {
+bool FeatureMatcher::Run(job_context &context) {
     /* TEST CODE: no thread version.
      */
-    //return RunNoThread(context);
+    return RunNoThread(context);
 
     /* TEST CODE: tile-based thread version
      */
-    return RunTileThread( context );
+    //return RunTileThread( context );
 }
 
-bool FeatureExtractorOrb::RunNoThread(job_context &context) {
+bool FeatureMatcher::RunNoThread(job_context &context) {
+    int image_num = context.imageDB.getImageNum();
 
-    //cv::namedWindow("Window", cv::WINDOW_NORMAL);
-    //cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
+    for(int i = 0; i < image_num-1; i++) {
+        std::shared_ptr<Image> querry = context.imageDB.getImage(i  );
+        std::shared_ptr<Image> train  = context.imageDB.getImage(i+1);
+
+        std::cout << "Matching: [" << querry->getFileName();
+        std::cout << "]  <--->  [" << train->getFileName() << std::endl;
+
+        bfMatching( querry, train );
+    }
+
+#if 0
+    cv::namedWindow("Window", cv::WINDOW_NORMAL);
+    cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
     
     /* Run ORB feature extractor
      */
@@ -32,7 +43,7 @@ bool FeatureExtractorOrb::RunNoThread(job_context &context) {
         cv::Mat desc;
         h_orb->detectAndCompute( *(image->getDataPtr()), cv::noArray(), kptr, desc );
 
-#if 0
+#if 1
         // DEBUG: display found keypointer
         cv::Mat kptr_image;
         cv::drawKeypoints( *(image->getDataPtr()), kptr, kptr_image, cv::Scalar(0,0,255), cv::DrawMatchesFlags::DEFAULT);
@@ -41,21 +52,22 @@ bool FeatureExtractorOrb::RunNoThread(job_context &context) {
 #endif
     }
 
-	//cv::destroyWindow("Window");
+	cv::destroyWindow("Window");
+#endif
 
     return true;
 }
 
 /* Tile-level thread running function
  */
-bool FeatureExtractorOrb::RunTileThread(job_context &context) {
-
+bool FeatureMatcher::RunThread(job_context &context) {
+#if 0
     /* Get divided tiles for given image data
      */
-    int xdiv = 1;
-    int ydiv = 1;
-    int level = 1;
-    int max_keypoint = 1000;
+    int xdiv = 2;
+    int ydiv = 2;
+    int level = 2;
+    int max_keypoint = 5000;
     for(int i = 0; i < context.imageDB.getImageNum(); i++) {
         std::shared_ptr<Image> image = context.imageDB.getImage(i);
         divideImageIntoTiles( _tileList, image, cv::Size(image->getImageSize()), 
@@ -71,8 +83,7 @@ bool FeatureExtractorOrb::RunTileThread(job_context &context) {
 
     // Creates thread instances.
     for(int i = 0; i < thread_num; i++)
-        //_threadList.emplace_back( std::thread(cpu_thread_wrapper, this) );
-        _threadList.push_back( std::thread(cpu_thread_wrapper, this) );
+        _threadList.emplace_back( std::thread(cpu_thread_wrapper, this) );
 
     // Waiting to stop thread instances
     for( auto &thread: _threadList )
@@ -126,7 +137,7 @@ bool FeatureExtractorOrb::RunTileThread(job_context &context) {
 
     /* DEBUG: check found feature on whole image (display found features on whole image)
      */
-#if 0
+#if 1
     cv::namedWindow("Window", cv::WINDOW_NORMAL);
     cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
     for(int i = 0; i < context.imageDB.getImageNum(); i++) {
@@ -136,94 +147,64 @@ bool FeatureExtractorOrb::RunTileThread(job_context &context) {
         cv::drawKeypoints(*(image->getDataPtr()), image->getOrbKeyPoints(), kpt_image, 
                 cv::Scalar(0,0,255), cv::DrawMatchesFlags::DEFAULT );
         cv::imshow("Window", kpt_image);
-        cv::waitKey(1);
+        cv::waitKey(0);
     }
 	cv::destroyWindow("Window");
 #endif
 
+#endif
 
     return true;
 }
 
-/* Recursive function to divide the given image into several tiles
- */
-void FeatureExtractorOrb::divideImageIntoTiles(
-        std::vector<imageTile> &tiles,
-        std::shared_ptr<Image> image, 
-        cv::Size itSize,    // input tile size
-        cv::Point2f gPos,
-        int level, int xdiv, int ydiv,
-        int max_keypoint )
+
+bool FeatureMatcher::bfMatching(
+        std::shared_ptr<Image> querry,
+        std::shared_ptr<Image> train ) 
 {
-    int unit_max_keypoint = (max_keypoint + (xdiv*ydiv)-1) / (xdiv*ydiv);
-    //int size_w = tile_size.width;
-    //int size_h = tile_size.height;
-    cv::Size utSize, otSize;
-    utSize.width  = (itSize.width + xdiv-1) / xdiv;
-    utSize.height = (itSize.height+ ydiv-1) / ydiv;
-
-    for(int i = 0; i < xdiv; i++) {
-        int pos_x = utSize.width * i;
-        otSize.width = (pos_x+utSize.width > itSize.width) ? (itSize.width - pos_x) : utSize.width;
-
-        for(int j = 0; j < ydiv; j++) {
-            int pos_y = utSize.height * j;
-            otSize.height = (pos_y+utSize.height > itSize.height) ? (itSize.height - pos_y) : utSize.height;
-            
-            /* Get image tile data
-             */
-            imageTile tile = {
-                .gPos = cv::Point2f(gPos.x+pos_x, gPos.y+pos_y),
-                .image = image,
-                .tile_size = otSize,
-                .max_keypoint = unit_max_keypoint,
-                .checked = false };
-
-            //tile.gPos = cv::Point2f(gPos.x+pos_x, gPos.y+pos_y);
-            //tile.tile = cv::Mat(image, cv::Rect(pos_x, pos_y, otSize.width, otSize.height));
-            //tile.max_keypoint = unit_max_keypoint;
-
-            if( level > 1 )
-                divideImageIntoTiles( 
-                    tiles, image, tile.tile_size, tile.gPos, level-1, xdiv, ydiv, unit_max_keypoint );
-            else
-                tiles.push_back( tile );
-        }
-    }
-
-    return;
-}
-
-bool FeatureExtractorOrb::extractFeature(void) {
-    int tile_list_num = _tileList.size();
-
-    for(int i = 0; i < tile_list_num; i++) {
-        /* Get valid(unprocessed) tile data from '_tileList'
-         */
-        _mutexLock.lock();
-        bool checked = _tileList[i].checked;
-        if( checked == false )
-            _tileList[i].checked = true;
-        _mutexLock.unlock();
-
-        if( checked )
-            continue;
-
-        /* Running OBR processing
-         */
-        std::cout << "OrbTHread::_tileList[" << i << "] is running.\n";
-
-#if 1
-        imageTile &tinfo = _tileList[i];
-        cv::Ptr<cv::ORB> orb_handle = cv::ORB::create( tinfo.max_keypoint );
-        cv::Mat tile_image = cv::Mat(*(tinfo.image->getDataPtr()), cv::Rect(tinfo.gPos.x, tinfo.gPos.y, tinfo.tile_size.width, tinfo.tile_size.height));
-        orb_handle->detectAndCompute( tile_image, cv::noArray(),
-                tinfo._orb_result.keypoints, tinfo._orb_result.descriptors );
+    cv::BFMatcher bfmatcher(cv::NORM_HAMMING);
+#if 0
+    std::vector<std::vector<cv::DMatch>> matchout;
+    bfmatcher.knnMatch( querry->getOrbKeyPoints(), train->getOrbKeyPoints(), matchout, 2);
 #else
-        // TEST version: FAST detector
-        //cv::FAST( _tileList[i].tile, _tileList[i]._orb_result.keypoints, 30, true);
-#endif
+    cv::Mat image_matches;
+    std::vector<cv::DMatch> matchout;
+    bfmatcher.match( querry->getOrbDescriptors(), train->getOrbDescriptors(), matchout, cv::noArray() );
+
+    /* Find minDist, maxDist.
+     */
+    float minDist = 1000000.0, maxDist = 0;
+    for(auto &mch : matchout) {
+        if( minDist > mch.distance )
+            minDist = mch.distance;
+        if( maxDist < mch.distance )
+            maxDist = mch.distance;
     }
+    std::cout << "minDist = " << minDist;
+    std::cout << "\tmaxDist = " << maxDist << std::endl;
+
+    /* Remove unreliable matching from the list.
+     */
+    std::vector<cv::DMatch> matchout2;
+    std::cout << "before remove, matchout.size() = " << matchout.size() << std::endl;
+    for(std::vector<cv::DMatch>::iterator iter = matchout.begin();
+            iter != matchout.end(); iter++) {
+        if( iter->distance < minDist*2.0 )
+            matchout2.push_back( *iter );
+    }
+    std::cout << "after remove,  matchout.size() = " << matchout2.size() << std::endl;
+
+    cv::drawMatches( *(querry->getDataPtr()), querry->getOrbKeyPoints(),
+                     *(train->getDataPtr()), train->getOrbKeyPoints(),
+                     matchout2, image_matches, cv::Scalar(0,0,255), cv::Scalar(0,0,255),
+                     std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
+
+    //cv::namedWindow("Window", cv::WINDOW_NORMAL);
+    //cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
+    //cv::imshow("Window", image_matches);
+    //cv::waitKey(1);
+	//cv::destroyWindow("Window");
+#endif
 
     return true;
 }
