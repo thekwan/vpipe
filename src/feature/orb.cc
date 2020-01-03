@@ -14,7 +14,7 @@ bool FeatureExtractorOrb::Run(job_context &context) {
 
     /* TEST CODE: tile-based thread version
      */
-    RunTileThread( context.images->getImage(0)->getDataPtr() );
+    RunTileThread( context );
 }
 
 bool FeatureExtractorOrb::RunNoThread(job_context &context) {
@@ -51,19 +51,48 @@ bool FeatureExtractorOrb::RunNoThread(job_context &context) {
 
 /* Tile-level thread running function
  */
-bool FeatureExtractorOrb::RunTileThread(const cv::Mat &image) {
+bool FeatureExtractorOrb::RunTileThread(job_context &context) {
     /* Get divided tiles for given image data
      */
-    std::vector<imageTile> tileList;
-    divideImageIntoTiles( tileList, image, cv::Point2f(0,0), 2, 2, 2, 5000);
+    int xdiv = 4;
+    int ydiv = 4;
+    int level = 2;
+    int max_keypoint = 10000;
+    for(int i = 0; i < context.images->getImageNum(); i++) {
+        divideImageIntoTiles( _tileList, context.images->getImage(i)->getDataPtr(),
+                cv::Point2f(0,0), level, xdiv, ydiv, max_keypoint);
+    }
+
+
+    /* Creates thread descriptor for each tile structure
+     */
+    int thread_num = 5;
+    _threadList.clear();
+
+    // Creates thread instances.
+    for(int i = 0; i < thread_num; i++)
+        _threadList.emplace_back( std::thread(cpu_thread_wrapper, this) );
+
+    // Waiting to stop thread instances
+    for( auto &thread: _threadList )
+        thread.join();
+
+    // de-initializes thread list
+    _threadList.clear();
+
 
 #if 1
     // DEBUG: check the tile info
-    std::cout << "Image size = " << image.size() << std::endl;
+    std::cout << "Image size = " << context.images->getImage(0)->getDataPtr().size() << std::endl;
     cv::namedWindow("Window", cv::WINDOW_NORMAL);
     cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
-    for( auto tile : tileList ) {
-        cv::imshow("Window", tile.tile);
+    for( auto tile : _tileList ) {
+        // draw image and found key-points
+        cv::Mat kpt_image;
+        cv::drawKeypoints(tile.tile, tile._orb_result.keypoints, kpt_image, 
+                cv::Scalar(0,0,255), cv::DrawMatchesFlags::DEFAULT );
+        cv::imshow("Window", kpt_image);
+        //cv::imshow("Window", tile.tile);
         std::cout << "\ttile size = " << tile.tile.size();
         std::cout << "\ttile pos = " << tile.gPos;
         std::cout << "\tmax_kp = " << tile.max_keypoint << std::endl;
@@ -72,11 +101,7 @@ bool FeatureExtractorOrb::RunTileThread(const cv::Mat &image) {
 	cv::destroyWindow("Window");
 #endif
 
-    /* Creates thread descriptor for each tile structure
-     */
 
-    /* Creates threads to do feature extraction
-     */
     return true;
 }
 
@@ -115,9 +140,50 @@ void FeatureExtractorOrb::divideImageIntoTiles(
                     tiles, tile.tile, tile.gPos, level-1, xdiv, ydiv, unit_max_keypoint );
             else
                 tiles.push_back( tile );
-
         }
     }
 
     return;
 }
+
+bool FeatureExtractorOrb::extractFeature(void) {
+    int tile_list_num = _tileList.size();
+
+    for(int i = 0; i < tile_list_num; i++) {
+        /* Get valid(unprocessed) tile data from '_tileList'
+         */
+        _mutexLock.lock();
+        bool checked = _tileList[i].checked;
+        if( checked == false )
+            _tileList[i].checked = true;
+        _mutexLock.unlock();
+
+        if( checked )
+            continue;
+
+        /* Running OBR processing
+         */
+        std::cout << "OrbTHread::_tileList[" << i << "] is running.\n";
+
+#if 1
+        cv::Ptr<cv::ORB> orb_handle = cv::ORB::create( _tileList[i].max_keypoint );
+        orb_handle->detectAndCompute( _tileList[i].tile, cv::noArray(),
+                _tileList[i]._orb_result.keypoints,
+                _tileList[i]._orb_result.descriptors );
+#else
+        cv::FAST( _tileList[i].tile, _tileList[i]._orb_result.keypoints, 30, true);
+        //cv::drawKeypoints( _tileList[i].tile, 
+#endif
+    }
+
+    return true;
+}
+
+/*
+bool OrbThreadDesc::Run(void) {
+    return true;
+}
+bool OrbThreadDesc::Stop(void) {
+    return true;
+}
+*/
