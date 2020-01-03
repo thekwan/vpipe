@@ -17,8 +17,9 @@ public:
     Image(std::string fileName);
     ~Image();
 
+    cv::Size getImageSize(void);
     void copyData(cv::Mat &data);
-    const cv::Mat getDataPtr(void);
+    const cv::Mat* getDataPtr(void);
     const std::string getFileName(void);
 private:
     cv::Mat  _data;
@@ -38,10 +39,11 @@ public:
     ~ImageDB();
 
     int getImageNum(void);
+    //void addKeyPointAndDescriptor(std::shared_ptr<Image>, KeyPointAndDesc);
     std::shared_ptr<Image> getImage(int index);
 private:
     std::vector<std::shared_ptr<Image>>  _images;
-    std::vector<KeyPointAndDesc> _keypoint_desc;
+    std::map<std::shared_ptr<Image>, KeyPointAndDesc> _keypoint_desc;
 };
 
 #endif

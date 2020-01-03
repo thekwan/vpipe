@@ -24,21 +24,21 @@ bool FeatureExtractorOrb::RunNoThread(job_context &context) {
     
     /* Run ORB feature extractor
      */
-    auto img_db= context.images;
+    auto &img_db= context.images;
     int image_num = img_db->getImageNum();
-    cv::Ptr<cv::ORB> h_orb = cv::ORB::create( 100000 );
+    cv::Ptr<cv::ORB> h_orb = cv::ORB::create( 1000 );
     for(int i = 0 ; i < image_num ; i++) {
         auto image = img_db->getImage(i);
         std::vector<cv::KeyPoint> kptr;
         cv::Mat desc;
-        h_orb->detectAndCompute( image->getDataPtr(), cv::noArray(), kptr, desc );
+        h_orb->detectAndCompute( *(image->getDataPtr()), cv::noArray(), kptr, desc );
 
 #if 1
         //std::cout << "keypoint # is " << kptr.size() << "\t";
         //std::cout << "desc size is " << desc.size() << "\n";
         // DEBUG: display found keypointer
         cv::Mat kptr_image;
-        cv::drawKeypoints( image->getDataPtr(), kptr, kptr_image, cv::Scalar(0,0,255), cv::DrawMatchesFlags::DEFAULT);
+        cv::drawKeypoints( *(image->getDataPtr()), kptr, kptr_image, cv::Scalar(0,0,255), cv::DrawMatchesFlags::DEFAULT);
         cv::imshow("Window", kptr_image);
         cv::waitKey(0);
 #endif
@@ -52,19 +52,22 @@ bool FeatureExtractorOrb::RunNoThread(job_context &context) {
 /* Tile-level thread running function
  */
 bool FeatureExtractorOrb::RunTileThread(job_context &context) {
+
     /* Get divided tiles for given image data
      */
-    int xdiv = 4;
-    int ydiv = 4;
+    int xdiv = 2;
+    int ydiv = 2;
     int level = 2;
-    int max_keypoint = 10000;
+    int max_keypoint = 5000;
     for(int i = 0; i < context.images->getImageNum(); i++) {
-        divideImageIntoTiles( _tileList, context.images->getImage(i)->getDataPtr(),
+        std::shared_ptr<Image> image = context.images->getImage(i);
+        divideImageIntoTiles( _tileList, image, cv::Size(image->getImageSize()), 
                 cv::Point2f(0,0), level, xdiv, ydiv, max_keypoint);
     }
 
 
-    /* Creates thread descriptor for each tile structure
+#if 1
+    /* Creates Feature extraction threads and runs the threads.
      */
     int thread_num = 5;
     _threadList.clear();
@@ -79,21 +82,34 @@ bool FeatureExtractorOrb::RunTileThread(job_context &context) {
 
     // de-initializes thread list
     _threadList.clear();
+#else
+    /* DEBUG: No thread version.
+     */
+    extractFeature();
+#endif
 
 
+
+    /* DEBUG: check each tile info, and display found feature drew image.
+     */
 #if 1
-    // DEBUG: check the tile info
-    std::cout << "Image size = " << context.images->getImage(0)->getDataPtr().size() << std::endl;
     cv::namedWindow("Window", cv::WINDOW_NORMAL);
     cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
-    for( auto tile : _tileList ) {
+    for( auto &tile : _tileList ) {
+#if 1
         // draw image and found key-points
         cv::Mat kpt_image;
-        cv::drawKeypoints(tile.tile, tile._orb_result.keypoints, kpt_image, 
+        cv::Mat tile_image = cv::Mat(*(tile.image->getDataPtr()), 
+                cv::Rect(tile.gPos.x, tile.gPos.y, tile.tile_size.width, tile.tile_size.height));
+        cv::drawKeypoints(tile_image, tile._orb_result.keypoints, kpt_image, 
                 cv::Scalar(0,0,255), cv::DrawMatchesFlags::DEFAULT );
         cv::imshow("Window", kpt_image);
-        //cv::imshow("Window", tile.tile);
-        std::cout << "\ttile size = " << tile.tile.size();
+#else
+        cv::Mat tile_image = cv::Mat(*(tile.image), cv::Rect(tile.gPos.x, tile.gPos.y, tile.tile_size.width, tile.tile_size.height));
+        cv::imshow("Window", tile_image);
+#endif
+        std::cout << "Image size = " << tile.image->getDataPtr()->size();
+        std::cout << "\ttile size = " << tile.tile_size;
         std::cout << "\ttile pos = " << tile.gPos;
         std::cout << "\tmax_kp = " << tile.max_keypoint << std::endl;
         cv::waitKey(0);
@@ -102,6 +118,10 @@ bool FeatureExtractorOrb::RunTileThread(job_context &context) {
 #endif
 
 
+    /* Updates keypoint position with global position of each tile.
+     * and copy them into ImageDB's _keypoint_desc variable.
+     */
+
     return true;
 }
 
@@ -109,35 +129,43 @@ bool FeatureExtractorOrb::RunTileThread(job_context &context) {
  */
 void FeatureExtractorOrb::divideImageIntoTiles(
         std::vector<imageTile> &tiles,
-        cv::Mat image, 
+        std::shared_ptr<Image> image, 
+        cv::Size itSize,    // input tile size
         cv::Point2f gPos,
         int level, int xdiv, int ydiv,
         int max_keypoint )
 {
     int unit_max_keypoint = (max_keypoint + (xdiv*ydiv)-1) / (xdiv*ydiv);
-    int size_w = image.size().width;
-    int size_h = image.size().height;
-    int unit_h = (size_h + ydiv-1) / ydiv;
-    int unit_w = (size_w + xdiv-1) / xdiv;
+    //int size_w = tile_size.width;
+    //int size_h = tile_size.height;
+    cv::Size utSize, otSize;
+    utSize.width  = (itSize.width + xdiv-1) / xdiv;
+    utSize.height = (itSize.height+ ydiv-1) / ydiv;
 
     for(int i = 0; i < xdiv; i++) {
-        int pos_x = unit_w * i;
-        int win_w = (pos_x+unit_w > size_w) ? (size_w-pos_x) : unit_w;
+        int pos_x = utSize.width * i;
+        otSize.width = (pos_x+utSize.width > itSize.width) ? (itSize.width - pos_x) : utSize.width;
 
         for(int j = 0; j < ydiv; j++) {
-            int pos_y = unit_h * j;
-            int win_h = (pos_y+unit_h > size_h) ? (size_h-pos_y) : unit_h;
+            int pos_y = utSize.height * j;
+            otSize.height = (pos_y+utSize.height > itSize.height) ? (itSize.height - pos_y) : utSize.height;
             
             /* Get image tile data
              */
-            imageTile tile;
-            tile.gPos = cv::Point2f(gPos.x+pos_x, gPos.y+pos_y);
-            tile.tile = cv::Mat(image, cv::Rect(pos_x, pos_y, win_w, win_h));
-            tile.max_keypoint = unit_max_keypoint;
+            imageTile tile = {
+                .gPos = cv::Point2f(gPos.x+pos_x, gPos.y+pos_y),
+                .image = image,
+                .tile_size = otSize,
+                .max_keypoint = unit_max_keypoint,
+                .checked = false };
+
+            //tile.gPos = cv::Point2f(gPos.x+pos_x, gPos.y+pos_y);
+            //tile.tile = cv::Mat(image, cv::Rect(pos_x, pos_y, otSize.width, otSize.height));
+            //tile.max_keypoint = unit_max_keypoint;
 
             if( level > 1 )
                 divideImageIntoTiles( 
-                    tiles, tile.tile, tile.gPos, level-1, xdiv, ydiv, unit_max_keypoint );
+                    tiles, image, tile.tile_size, tile.gPos, level-1, xdiv, ydiv, unit_max_keypoint );
             else
                 tiles.push_back( tile );
         }
@@ -166,24 +194,17 @@ bool FeatureExtractorOrb::extractFeature(void) {
         std::cout << "OrbTHread::_tileList[" << i << "] is running.\n";
 
 #if 1
-        cv::Ptr<cv::ORB> orb_handle = cv::ORB::create( _tileList[i].max_keypoint );
-        orb_handle->detectAndCompute( _tileList[i].tile, cv::noArray(),
-                _tileList[i]._orb_result.keypoints,
-                _tileList[i]._orb_result.descriptors );
+        imageTile &tinfo = _tileList[i];
+        cv::Ptr<cv::ORB> orb_handle = cv::ORB::create( tinfo.max_keypoint );
+        cv::Mat tile_image = cv::Mat(*(tinfo.image->getDataPtr()), cv::Rect(tinfo.gPos.x, tinfo.gPos.y, tinfo.tile_size.width, tinfo.tile_size.height));
+        orb_handle->detectAndCompute( tile_image, cv::noArray(),
+                tinfo._orb_result.keypoints, tinfo._orb_result.descriptors );
 #else
+        // TEST version: FAST detector
         cv::FAST( _tileList[i].tile, _tileList[i]._orb_result.keypoints, 30, true);
-        //cv::drawKeypoints( _tileList[i].tile, 
 #endif
     }
 
     return true;
 }
 
-/*
-bool OrbThreadDesc::Run(void) {
-    return true;
-}
-bool OrbThreadDesc::Stop(void) {
-    return true;
-}
-*/

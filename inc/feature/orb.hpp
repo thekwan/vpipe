@@ -14,27 +14,14 @@
 
 typedef struct _imageTile {
     cv::Point2f  gPos;  // tile global position
-    cv::Mat      tile;  // image tile data
+    //cv::Mat      tile;  // image tile data
+    std::shared_ptr<Image> image;
+    cv::Size     tile_size;
     int          max_keypoint;
     bool         checked = false;
     KeyPointAndDesc  _orb_result;
 } imageTile;
 
-
-/*
-class OrbThreadDesc : Thread {
-public:
-    OrbThreadDesc(pthread_mutex_t &lock, std::vector<imageTile> &queue)
-        : Thread(lock), _queue(queue) {}
-    ~OrbThreadDesc() {}
-    virtual bool Run();
-    virtual bool Stop();
-private:
-    bool mainThread(void);
-    std::vector<imageTile> &_queue;
-    int _queue_idx;
-};
-*/
 
 
 class FeatureExtractorOrb : public Job {
@@ -53,16 +40,11 @@ private:
     bool RunTileThread(job_context &context);
     void divideImageIntoTiles(
             std::vector<imageTile> &tiles,
-            cv::Mat imageData, cv::Point2f gPos, int level, 
+            std::shared_ptr<Image> image, cv::Size itSize, cv::Point2f gPos, int level, 
             int xdiv, int ydiv, int max_keypoint );
     
 
     program_args  &_pargs;
-    /* Thread queue:
-     * pending_q: Q for threads to wait therad start.
-     * finish_q: Q for threads to finish its working.
-     */
-    //std::queue<std::shared_ptr<OrbThreadDesc>>  pending_q, finish_q;
 
     /* Image tile list
      */

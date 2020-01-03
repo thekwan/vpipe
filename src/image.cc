@@ -29,14 +29,17 @@ void Image::copyData(cv::Mat &data) {
     data = _data;
 }
 
-const cv::Mat Image::getDataPtr(void) {
-    return _data;
+const cv::Mat* Image::getDataPtr(void) {
+    return &_data;
 }
 
 const std::string Image::getFileName(void) {
     return _fileName;
 }
 
+cv::Size Image::getImageSize(void) {
+    return _data.size();
+}
 
 /* CLASS: ImageDB
  */
