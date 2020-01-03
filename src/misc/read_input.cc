@@ -16,7 +16,7 @@ ReadImages::ReadImages(std::string name, program_args &pargs) : Job(name), _parg
 }
 
 bool ReadImages::Run(job_context &context) {
-    context.images = std::make_shared<ImageDB>(_iflist);
+    context.imageDB.readImages(_iflist);
 
 #if 0   // DEBUG
     // display each image on window

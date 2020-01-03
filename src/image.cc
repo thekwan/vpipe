@@ -41,20 +41,29 @@ cv::Size Image::getImageSize(void) {
     return _data.size();
 }
 
+void Image::setOrbKeyPoints  (std::vector<cv::KeyPoint> kpts) {
+    _orb_kpts = kpts;
+}
+void Image::setOrbDescriptors(cv::Mat descs) {
+    _orb_desc = descs;
+}
+void Image::addOrbKeyPoints  (std::vector<cv::KeyPoint> kpts) {
+    _orb_kpts.insert( _orb_kpts.end(), kpts.begin(), kpts.end() );
+}
+void Image::addOrbDescriptors(cv::Mat descs) {
+    _orb_desc.push_back( descs );
+}
+std::vector<cv::KeyPoint> Image::getOrbKeyPoints(void) {
+    return _orb_kpts;
+}
+cv::Mat Image::getOrbDescriptors(void) {
+    return _orb_desc;
+}
+
+
 /* CLASS: ImageDB
  */
-ImageDB::ImageDB(std::string fileNameList) {
-    std::ifstream iflist(fileNameList);
-    if( ! iflist.is_open() ) {
-        std::cout << "ERROR ImageDB file open error" << std::endl;
-        // TODO: exception;
-    }
-
-    std::string imageFilePath;
-    while( getline(iflist, imageFilePath) ) {
-        _images.emplace_back( std::make_shared<Image>(imageFilePath) );
-    }
-
+ImageDB::ImageDB() {
 }
 
 ImageDB::~ImageDB() {
@@ -71,4 +80,17 @@ std::shared_ptr<Image> ImageDB::getImage(int index) {
     }
 
     return _images[index];
+}
+
+void ImageDB::readImages(std::string fileNameList) {
+    std::ifstream iflist(fileNameList);
+    if( ! iflist.is_open() ) {
+        std::cout << "ERROR ImageDB file open error" << std::endl;
+        // TODO: exception;
+    }
+
+    std::string imageFilePath;
+    while( getline(iflist, imageFilePath) ) { 
+        _images.emplace_back( std::make_shared<Image>(imageFilePath) );
+    }
 }

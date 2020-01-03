@@ -24,18 +24,15 @@ bool FeatureExtractorOrb::RunNoThread(job_context &context) {
     
     /* Run ORB feature extractor
      */
-    auto &img_db= context.images;
-    int image_num = img_db->getImageNum();
+    int image_num = context.imageDB.getImageNum();
     cv::Ptr<cv::ORB> h_orb = cv::ORB::create( 1000 );
     for(int i = 0 ; i < image_num ; i++) {
-        auto image = img_db->getImage(i);
+        auto image = context.imageDB.getImage(i);
         std::vector<cv::KeyPoint> kptr;
         cv::Mat desc;
         h_orb->detectAndCompute( *(image->getDataPtr()), cv::noArray(), kptr, desc );
 
 #if 1
-        //std::cout << "keypoint # is " << kptr.size() << "\t";
-        //std::cout << "desc size is " << desc.size() << "\n";
         // DEBUG: display found keypointer
         cv::Mat kptr_image;
         cv::drawKeypoints( *(image->getDataPtr()), kptr, kptr_image, cv::Scalar(0,0,255), cv::DrawMatchesFlags::DEFAULT);
@@ -59,8 +56,8 @@ bool FeatureExtractorOrb::RunTileThread(job_context &context) {
     int ydiv = 2;
     int level = 2;
     int max_keypoint = 5000;
-    for(int i = 0; i < context.images->getImageNum(); i++) {
-        std::shared_ptr<Image> image = context.images->getImage(i);
+    for(int i = 0; i < context.imageDB.getImageNum(); i++) {
+        std::shared_ptr<Image> image = context.imageDB.getImage(i);
         divideImageIntoTiles( _tileList, image, cv::Size(image->getImageSize()), 
                 cv::Point2f(0,0), level, xdiv, ydiv, max_keypoint);
     }
@@ -92,11 +89,10 @@ bool FeatureExtractorOrb::RunTileThread(job_context &context) {
 
     /* DEBUG: check each tile info, and display found feature drew image.
      */
-#if 1
+#if 0
     cv::namedWindow("Window", cv::WINDOW_NORMAL);
     cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
     for( auto &tile : _tileList ) {
-#if 1
         // draw image and found key-points
         cv::Mat kpt_image;
         cv::Mat tile_image = cv::Mat(*(tile.image->getDataPtr()), 
@@ -104,10 +100,6 @@ bool FeatureExtractorOrb::RunTileThread(job_context &context) {
         cv::drawKeypoints(tile_image, tile._orb_result.keypoints, kpt_image, 
                 cv::Scalar(0,0,255), cv::DrawMatchesFlags::DEFAULT );
         cv::imshow("Window", kpt_image);
-#else
-        cv::Mat tile_image = cv::Mat(*(tile.image), cv::Rect(tile.gPos.x, tile.gPos.y, tile.tile_size.width, tile.tile_size.height));
-        cv::imshow("Window", tile_image);
-#endif
         std::cout << "Image size = " << tile.image->getDataPtr()->size();
         std::cout << "\ttile size = " << tile.tile_size;
         std::cout << "\ttile pos = " << tile.gPos;
@@ -121,6 +113,33 @@ bool FeatureExtractorOrb::RunTileThread(job_context &context) {
     /* Updates keypoint position with global position of each tile.
      * and copy them into ImageDB's _keypoint_desc variable.
      */
+    for( auto &tile : _tileList ) {
+        for( auto &kps : tile._orb_result.keypoints ) {
+            kps.pt.x += tile.gPos.x;
+            kps.pt.y += tile.gPos.y;
+        }
+        tile.image->addOrbKeyPoints( tile._orb_result.keypoints );
+        tile.image->addOrbDescriptors( tile._orb_result.descriptors );
+    }
+
+
+    /* DEBUG: check found feature on whole image (display found features on whole image)
+     */
+#if 1
+    cv::namedWindow("Window", cv::WINDOW_NORMAL);
+    cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
+    for(int i = 0; i < context.imageDB.getImageNum(); i++) {
+        std::shared_ptr<Image> image = context.imageDB.getImage(i);
+        // draw image and found key-points
+        cv::Mat kpt_image;
+        cv::drawKeypoints(*(image->getDataPtr()), image->getOrbKeyPoints(), kpt_image, 
+                cv::Scalar(0,0,255), cv::DrawMatchesFlags::DEFAULT );
+        cv::imshow("Window", kpt_image);
+        cv::waitKey(0);
+    }
+	cv::destroyWindow("Window");
+#endif
+
 
     return true;
 }

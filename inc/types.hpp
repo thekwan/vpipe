@@ -16,7 +16,7 @@ typedef struct _program_arguments {
 } program_args;
 
 typedef struct _job_context {
-    std::shared_ptr<ImageDB>  images;
+    ImageDB   imageDB;
 } job_context;
 
 #endif
