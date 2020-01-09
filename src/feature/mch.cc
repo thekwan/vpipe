@@ -29,13 +29,13 @@ bool FeatureMatcher::RunNoThread(job_context &context) {
         bfMatching( querry, train );
     }
 
-#if 0
+#if 1
     cv::namedWindow("Window", cv::WINDOW_NORMAL);
     cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
     
     /* Run ORB feature extractor
      */
-    int image_num = context.imageDB.getImageNum();
+    //int image_num = context.imageDB.getImageNum();
     cv::Ptr<cv::ORB> h_orb = cv::ORB::create( 1000 );
     for(int i = 0 ; i < image_num ; i++) {
         auto image = context.imageDB.getImage(i);
@@ -185,11 +185,12 @@ bool FeatureMatcher::bfMatching(
 
     /* Remove unreliable matching from the list.
      */
+    float thrDist = minDist + (maxDist-minDist)/4;
     std::vector<cv::DMatch> matchout2;
     std::cout << "before remove, matchout.size() = " << matchout.size() << std::endl;
     for(std::vector<cv::DMatch>::iterator iter = matchout.begin();
             iter != matchout.end(); iter++) {
-        if( iter->distance < minDist*2.0 )
+        if( iter->distance < thrDist )
             matchout2.push_back( *iter );
     }
     std::cout << "after remove,  matchout.size() = " << matchout2.size() << std::endl;
@@ -199,11 +200,11 @@ bool FeatureMatcher::bfMatching(
                      matchout2, image_matches, cv::Scalar(0,0,255), cv::Scalar(0,0,255),
                      std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
 
-    //cv::namedWindow("Window", cv::WINDOW_NORMAL);
-    //cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
-    //cv::imshow("Window", image_matches);
-    //cv::waitKey(1);
-	//cv::destroyWindow("Window");
+    cv::namedWindow("Output", cv::WINDOW_NORMAL);
+    cv::setWindowProperty("Output", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
+    cv::imshow("Output", image_matches);
+    cv::waitKey(0);
+	cv::destroyWindow("Output");
 #endif
 
     return true;
