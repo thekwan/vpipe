@@ -12,9 +12,6 @@
 
 #include "types.hpp"
 #include "job.hpp"
-#include "orb.hpp"
-#include "mch.hpp"
-#include "read_input.hpp"
 
 class PipeSimulator {
 public:

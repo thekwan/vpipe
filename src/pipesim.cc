@@ -8,6 +8,10 @@
 #include <opencv2/core/utility.hpp>
 
 #include "pipesim.hpp"
+#include "orb.hpp"
+#include "mch.hpp"
+#include "test0.hpp"
+#include "read_input.hpp"
 
 void PipeSimulator::CmdParser(int argc, char *argv[]) {
     const char *keys = 
@@ -45,6 +49,9 @@ void PipeSimulator::CreateJobs(void) {
     }
     else if( _main_cmd.compare( "feature_extract_orb" ) == 0 ) {
         _jqueue.push( std::make_shared<FeatureExtractorOrb>("Feature extractor ORB",_args) );
+    }
+    else if( _main_cmd.compare( "test0" ) == 0 ) {
+        _jqueue.push( std::make_shared<Test0>("Adaptive threshold test code",_args) );
     }
     else {
         // throw exception
