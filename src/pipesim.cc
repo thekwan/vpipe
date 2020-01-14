@@ -11,6 +11,7 @@
 #include "orb.hpp"
 #include "mch.hpp"
 #include "test0.hpp"
+#include "calib.hpp"
 #include "read_input.hpp"
 
 void PipeSimulator::CmdParser(int argc, char *argv[]) {
@@ -51,7 +52,10 @@ void PipeSimulator::CreateJobs(void) {
         _jqueue.push( std::make_shared<FeatureExtractorOrb>("Feature extractor ORB",_args) );
     }
     else if( _main_cmd.compare( "test0" ) == 0 ) {
-        _jqueue.push( std::make_shared<Test0>("Adaptive threshold test code",_args) );
+        _jqueue.push( std::make_shared<Test0>("Aruco detector test code",_args) );
+    }
+    else if( _main_cmd.compare( "calibration" ) == 0 ) {
+        _jqueue.push( std::make_shared<CameraCalibration>("Camera calibration test",_args) );
     }
     else {
         // throw exception
