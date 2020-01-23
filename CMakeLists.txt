@@ -16,6 +16,6 @@ include_directories(
 FILE(GLOB_RECURSE sourcefiles "src/*.cc")
 
 add_executable(vpipe ${sourcefiles} main.cc)
-target_link_libraries(vpipe ${OpenCV_LIBS} "-lpthread")
+target_link_libraries(vpipe ${OpenCV_LIBS} "-lpthread -lGL -lglut")
 #add_executable(vpipe_test ${sourcefiles} )
 #target_link_libraries(vpipe_test ${OpenCV_LIBS})

@@ -11,6 +11,7 @@
 #include "orb.hpp"
 #include "mch.hpp"
 #include "test0.hpp"
+#include "test1.hpp"
 #include "calib.hpp"
 #include "read_input.hpp"
 
@@ -52,7 +53,10 @@ void PipeSimulator::CreateJobs(void) {
         _jqueue.push( std::make_shared<FeatureExtractorOrb>("Feature extractor ORB",_args) );
     }
     else if( _main_cmd.compare( "test0" ) == 0 ) {
-        _jqueue.push( std::make_shared<Test0>("Aruco detector test code",_args) );
+        _jqueue.push( std::make_shared<Test0>("Aruco detector test code 0",_args) );
+    }
+    else if( _main_cmd.compare( "test1" ) == 0 ) {
+        _jqueue.push( std::make_shared<Test1>("Aruco detector test code 1",_args) );
     }
     else if( _main_cmd.compare( "calibration" ) == 0 ) {
         _jqueue.push( std::make_shared<CameraCalibration>("Camera calibration test",_args) );

@@ -88,10 +88,15 @@ void CameraCalibration::TestRun0(job_context &context) {
     cv::calibrateCamera( objectPoints, imagePoints, imageSize, 
             cameraMatrix, distCoeffs, rvecs, tvecs, calibFlags);
 
+    std::cout << "Image size     = (" << imageSize.width << " , " << imageSize.height << ")" << std::endl;
     std::cout << "Camera matrix = " << cameraMatrix << std::endl;
-    std::cout << "Distor coeffs = " << distCoeffs << std::endl;
-    std::cout << "rvecs.size    = " << rvecs.size() << std::endl;
-    std::cout << "tvecs.size    = " << tvecs.size() << std::endl;
+    std::cout << "Focal length X = " << cameraMatrix.at<double>(0,0) << std::endl;
+    std::cout << "Focal length Y = " << cameraMatrix.at<double>(1,1) << std::endl;
+    std::cout << "Camera pos X   = " << cameraMatrix.at<double>(0,2) << std::endl;
+    std::cout << "Camera pos Y   = " << cameraMatrix.at<double>(1,2) << std::endl;
+    std::cout << "Distor coeffs  = " << distCoeffs << std::endl;
+    std::cout << "rvecs.size     = " << rvecs.size() << std::endl;
+    std::cout << "tvecs.size     = " << tvecs.size() << std::endl;
 
     /* Project Axis on image.
      */
@@ -102,9 +107,13 @@ void CameraCalibration::TestRun0(job_context &context) {
     axisPoints.emplace_back( cv::Point3f( 0, -square_size, 0 ) );
     axisPoints.emplace_back( cv::Point3f( 0, 0, -square_size ) );
 
+    std::cout << "== check camera parameter for each scene ==" << std::endl;
+
     for(int i = 0; i < rvecs.size(); i++) {
         std::vector<cv::Point2f> projPoints;
         cv::projectPoints( axisPoints, rvecs[i], tvecs[i], cameraMatrix, distCoeffs, projPoints );
+
+        std::cout << "tvecs = " << tvecs[i] << std::endl;
 
         /* Draw axis on the image.
          */
