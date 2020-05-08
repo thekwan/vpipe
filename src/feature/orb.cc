@@ -52,10 +52,10 @@ bool FeatureExtractorOrb::RunTileThread(job_context &context) {
 
     /* Get divided tiles for given image data
      */
-    int xdiv = 1;
-    int ydiv = 1;
-    int level = 1;
-    int max_keypoint = 1000;
+    int xdiv = 2;
+    int ydiv = 2;
+    int level = 2;
+    int max_keypoint = 3000;
     for(int i = 0; i < context.imageDB.getImageNum(); i++) {
         std::shared_ptr<Image> image = context.imageDB.getImage(i);
         divideImageIntoTiles( _tileList, image, cv::Size(image->getImageSize()), 

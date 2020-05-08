@@ -29,14 +29,14 @@ bool FeatureMatcher::RunNoThread(job_context &context) {
         bfMatching( querry, train );
     }
 
-#if 1
+#if 0
     cv::namedWindow("Window", cv::WINDOW_NORMAL);
     cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
     
     /* Run ORB feature extractor
      */
     //int image_num = context.imageDB.getImageNum();
-    cv::Ptr<cv::ORB> h_orb = cv::ORB::create( 1000 );
+    cv::Ptr<cv::ORB> h_orb = cv::ORB::create( 3000 );
     for(int i = 0 ; i < image_num ; i++) {
         auto image = context.imageDB.getImage(i);
         std::vector<cv::KeyPoint> kptr;
@@ -185,7 +185,7 @@ bool FeatureMatcher::bfMatching(
 
     /* Remove unreliable matching from the list.
      */
-    float thrDist = minDist + (maxDist-minDist)/4;
+    float thrDist = minDist + (maxDist-minDist)/2;
     std::vector<cv::DMatch> matchout2;
     std::cout << "before remove, matchout.size() = " << matchout.size() << std::endl;
     for(std::vector<cv::DMatch>::iterator iter = matchout.begin();
