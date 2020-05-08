@@ -19,19 +19,20 @@ bool FeatureMatcher::Run(job_context &context) {
 bool FeatureMatcher::RunNoThread(job_context &context) {
     int image_num = context.imageDB.getImageNum();
 
+    cv::namedWindow("Output", cv::WINDOW_NORMAL);
+    cv::setWindowProperty("Output", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
+
     for(int i = 0; i < image_num-1; i++) {
         std::shared_ptr<Image> querry = context.imageDB.getImage(i  );
         std::shared_ptr<Image> train  = context.imageDB.getImage(i+1);
 
-        std::cout << "Matching: [" << querry->getFileName();
-        std::cout << "]  <--->  [" << train->getFileName() << std::endl;
+        //std::cout << "Matching: [" << querry->getFileName();
+        //std::cout << "]  <--->  [" << train->getFileName() << std::endl;
 
         bfMatching( querry, train );
     }
 
 #if 0
-    cv::namedWindow("Window", cv::WINDOW_NORMAL);
-    cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
     
     /* Run ORB feature extractor
      */
@@ -52,8 +53,9 @@ bool FeatureMatcher::RunNoThread(job_context &context) {
 #endif
     }
 
-	cv::destroyWindow("Window");
 #endif
+
+	cv::destroyWindow("Output");
 
     return true;
 }
@@ -162,7 +164,7 @@ bool FeatureMatcher::bfMatching(
         std::shared_ptr<Image> querry,
         std::shared_ptr<Image> train ) 
 {
-    cv::BFMatcher bfmatcher(cv::NORM_HAMMING);
+    cv::BFMatcher bfmatcher(cv::NORM_HAMMING,true);
 #if 0
     std::vector<std::vector<cv::DMatch>> matchout;
     bfmatcher.knnMatch( querry->getOrbKeyPoints(), train->getOrbKeyPoints(), matchout, 2);
@@ -180,31 +182,63 @@ bool FeatureMatcher::bfMatching(
         if( maxDist < mch.distance )
             maxDist = mch.distance;
     }
-    std::cout << "minDist = " << minDist;
-    std::cout << "\tmaxDist = " << maxDist << std::endl;
 
     /* Remove unreliable matching from the list.
      */
-    float thrDist = minDist + (maxDist-minDist)/2;
+#if 1
+    float thrDist = minDist + (maxDist-minDist)/4;
     std::vector<cv::DMatch> matchout2;
-    std::cout << "before remove, matchout.size() = " << matchout.size() << std::endl;
     for(std::vector<cv::DMatch>::iterator iter = matchout.begin();
             iter != matchout.end(); iter++) {
         if( iter->distance < thrDist )
             matchout2.push_back( *iter );
+        //std::cout << "matchout.dist = " << iter->distance << std::endl;
     }
-    std::cout << "after remove,  matchout.size() = " << matchout2.size() << std::endl;
 
+    std::cout << "minDist = " << minDist;
+    std::cout << "\tmaxDist = " << maxDist;
+    std::cout << "\tthrDist = " << thrDist << std::endl;
+    std::cout << "before remove, matchout.size() = " << matchout.size() << std::endl;
+    std::cout << "after remove,  matchout.size() = " << matchout2.size() << std::endl;
+#endif
+
+#if 0   // cv::drawMatches
     cv::drawMatches( *(querry->getDataPtr()), querry->getOrbKeyPoints(),
                      *(train->getDataPtr()), train->getOrbKeyPoints(),
                      matchout2, image_matches, cv::Scalar(0,0,255), cv::Scalar(0,0,255),
                      std::vector<char>(), cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
+#else
+    cv::Mat qGray, tGray;
+    cv::cvtColor(*(querry->getDataPtr()), qGray, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(*(train->getDataPtr()) , tGray, cv::COLOR_BGR2GRAY);
 
-    cv::namedWindow("Output", cv::WINDOW_NORMAL);
-    cv::setWindowProperty("Output", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
+    image_matches = (qGray + tGray)/2;
+    cv::cvtColor(image_matches, image_matches, cv::COLOR_GRAY2BGR);
+
+    std::cout << "BF matching results ------------------ \n";
+    std::vector<cv::KeyPoint> qk = querry->getOrbKeyPoints();
+    std::vector<cv::KeyPoint> tk = train->getOrbKeyPoints();
+    for (std::vector<cv::DMatch>::iterator iter = matchout2.begin();
+         iter != matchout2.end();
+         iter++ ) {
+        cv::KeyPoint &qkptr = qk[iter->queryIdx];
+        cv::KeyPoint &tkptr = tk[iter->trainIdx];
+
+        //std::cout << "[Q] " << qkptr.pt;
+        //std::cout << "   [T] " << tkptr.pt;
+        //std::cout << "   [M] " << iter->distance << std::endl;
+
+        //cv::circle(image_matches, qkptr.pt, 2, cv::Scalar(0,0,255));
+        cv::circle(image_matches, tkptr.pt, 2, cv::Scalar(0,0,255));
+        cv::line(image_matches, qkptr.pt, tkptr.pt, cv::Scalar(0,0,255));
+    }
+#endif
+
     cv::imshow("Output", image_matches);
-    cv::waitKey(0);
-	cv::destroyWindow("Output");
+    if (cv::waitKey(33) == 'q') {
+	    cv::destroyWindow("Output");
+        exit(1);
+    }
 #endif
 
     return true;

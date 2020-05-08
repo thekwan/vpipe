@@ -67,7 +67,8 @@ void PipeSimulator::CreateJobs(void) {
         _jqueue.push( std::make_shared<CameraCalibration>("Camera calibration test",_args) );
     }
     else if( _command.compare( "video_test" ) == 0 ) {
-        //_jqueue.push( std::make_shared<CameraCalibration>("Camera calibration test",_args) );
+        _jqueue.push( std::make_shared<FeatureExtractorOrb>("Feature extractor ORB",_args) );
+        _jqueue.push( std::make_shared<FeatureMatcher>("Feature matcher ORB",_args) );
     }
     else {
         // throw exception

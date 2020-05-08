@@ -1,0 +1,5 @@
+../data/chessboard/3/20170909_185246.jpg
+../data/chessboard/3/20170909_185249.jpg
+../data/chessboard/3/20170909_185252.jpg
+../data/chessboard/3/20170909_185254.jpg
+../data/chessboard/3/20170909_185259.jpg

@@ -54,7 +54,7 @@ bool FeatureExtractorOrb::RunTileThread(job_context &context) {
      */
     int xdiv = 2;
     int ydiv = 2;
-    int level = 2;
+    int level = 1;
     int max_keypoint = 3000;
     for(int i = 0; i < context.imageDB.getImageNum(); i++) {
         std::shared_ptr<Image> image = context.imageDB.getImage(i);
