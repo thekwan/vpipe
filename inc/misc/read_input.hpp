@@ -19,6 +19,7 @@ public:
 private:
     program_args  &_pargs;
     std::string    _iflist;
+    std::string    _ivideo;
 };
 
 #endif

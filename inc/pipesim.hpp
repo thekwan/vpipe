@@ -22,9 +22,9 @@ public:
     void Run(void);
 private:
     std::queue<std::shared_ptr<Job>> _jqueue;
-    std::string   _iflist;
-    std::string   _oflist;
-    std::string   _main_cmd;
+    //std::string   _iflist;
+    //std::string   _oflist;
+    std::string   _command;
     program_args  _args;
     job_context   _context;
 };

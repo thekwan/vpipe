@@ -18,6 +18,7 @@ class Image {
 public:
     Image();
     Image(std::string fileName);
+    Image(cv::Mat data, std::string fileName);
     ~Image();
 
     cv::Size getImageSize(void);
@@ -53,6 +54,7 @@ public:
 
     int getImageNum(void);
     void readImages(std::string fileNameList);
+    void readVideo(std::string fileNameList);
     std::shared_ptr<Image> getImage(int index);
 private:
     std::vector<std::shared_ptr<Image>>  _images;

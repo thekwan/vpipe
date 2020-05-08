@@ -1,4 +1,4 @@
 #./vpipe --iflist=iflist.txt
 
 # Video test
-./vpipe --ilist
+./vpipe --iflist=iflist.txt --cmd=auto_reconstruct

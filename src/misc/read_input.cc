@@ -8,15 +8,35 @@
 
 ReadImages::ReadImages(std::string name, program_args &pargs) : Job(name), _pargs(pargs) {
     const char *keys = 
-        "{iflist     | input_file_list.txt   | Input image file list.  }";
+        "{iflist     |                       | Input image file list.  }"
+        "{ivideo     |                       | Input video file name.  }";
 
     cv::CommandLineParser parser( _pargs.argc, _pargs.argv, keys );
-    _iflist   = parser.get<std::string>("iflist");
 
+    if (parser.has("iflist")) {
+        _iflist   = parser.get<std::string>("iflist");
+    }
+    if (parser.has("ivideo")) {
+        _ivideo = parser.get<std::string>("ivideo");
+    }
+
+#if 1
+    if (_iflist.size() > 0) {
+        std::cout << "ReadImages._iflist = " << _iflist << std::endl;
+    }
+    if (_ivideo.size() > 0) {
+        std::cout << "ReadImages._ivideo = " << _ivideo << std::endl;
+    }
+#endif
 }
 
 bool ReadImages::Run(job_context &context) {
-    context.imageDB.readImages(_iflist);
+    if (_iflist.size() > 0) {
+        context.imageDB.readImages(_iflist);
+    }
+    if (_ivideo.size() > 0) {
+        context.imageDB.readVideo(_ivideo);
+    }
     return true;
 }
 

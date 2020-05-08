@@ -22,6 +22,14 @@ Image::Image(std::string fileName) : _fileName(fileName) {
     }
 }
 
+Image::Image(cv::Mat data, std::string fileName) : _fileName(fileName) {
+    data.copyTo(_data);
+    if( _data.empty() ) {
+        std::cerr << "[ERROR] Image::Image() can't read image data." << std::endl;
+        // TODO: exception;
+    }
+}
+
 Image::~Image() {
 }
 
@@ -85,7 +93,8 @@ std::shared_ptr<Image> ImageDB::getImage(int index) {
 void ImageDB::readImages(std::string fileNameList) {
     std::ifstream iflist(fileNameList);
     if( ! iflist.is_open() ) {
-        std::cout << "ERROR ImageDB file open error" << std::endl;
+        std::cout << "ERROR ImageDB file open error";
+        std::cout << ": '" << fileNameList << "'\n";
         // TODO: exception;
     }
 
@@ -93,4 +102,42 @@ void ImageDB::readImages(std::string fileNameList) {
     while( getline(iflist, imageFilePath) ) { 
         _images.emplace_back( std::make_shared<Image>(imageFilePath) );
     }
+}
+
+void ImageDB::readVideo(std::string fileName) {
+    cv::VideoCapture cap(fileName);
+
+    if (!cap.isOpened()) {
+        std::cout << "[ERROR] ImageDB file open error";
+        std::cout << ": '" << fileName << "'\n";
+        // TODO: exception;
+    }
+
+    while (1) {
+        cv::Mat frame;
+        cap >> frame;
+
+        if (frame.empty()) {
+            break;
+        }
+
+        _images.emplace_back( std::make_shared<Image>(frame, fileName) );
+    }
+
+    cap.release();
+
+#if 0
+    /* TEST: display all image DB.
+     */
+    cv::namedWindow("Window", cv::WINDOW_NORMAL);
+    //cv::setWindowProperty("Window", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
+    int cnt = 0;
+    for (auto &a : _images) {
+        std::cout << "frame #" << cnt++ << std::endl;
+        cv::imshow("Window", *(a->getDataPtr()));
+        cv::waitKey(0);
+    }
+
+    cv::destroyWindow("Window");
+#endif
 }
