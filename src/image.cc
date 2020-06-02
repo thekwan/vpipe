@@ -34,7 +34,8 @@ Image::~Image() {
 }
 
 void Image::copyData(cv::Mat &data) {
-    data = _data;
+    //data = _data;
+    _data.copyTo(data);
 }
 
 const cv::Mat* Image::getDataPtr(void) {
@@ -66,6 +67,79 @@ std::vector<cv::KeyPoint> Image::getOrbKeyPoints(void) {
 }
 cv::Mat Image::getOrbDescriptors(void) {
     return _orb_desc;
+}
+
+void Image::fWriteData(std::ofstream &fs, char *data, int size) {
+    fs.write((char*) &size, sizeof(int));  // 4-bytes header.
+    fs.write((char*) data, size);  // 4-bytes header.
+}
+
+void Image::fWriteData(std::ofstream &fs, const std::string &data) {
+    fWriteData(fs, (char*)data.c_str(), data.size());
+}
+
+void Image::fWriteData(std::ofstream &fs, cv::Mat &data) {
+    struct _mat_header {
+        int rows;
+        int cols;
+        int type;
+    } mat_header;
+    mat_header.rows = data.rows;
+    mat_header.cols = data.cols;
+    mat_header.type = data.type();
+    fWriteData(fs, (char*) &mat_header, sizeof(mat_header));  // n-bytes data
+
+    // cv::Mat data write
+    cv::Mat tmp;
+    data.copyTo(tmp);
+    fWriteData(fs, (char*) tmp.data, tmp.elemSize() * tmp.total());
+}
+
+void Image::fWriteData(std::ofstream &fs, std::vector<cv::KeyPoint> &data) {
+    int total_num = data.size();
+    
+    /* Create temporary buffer
+     */
+    struct _pack {
+        float angle;
+        int   class_id;
+        int   octave;
+        float point_x;
+        float point_y;
+        float response;
+        float size;
+    };
+    struct _pack *buf = new struct _pack[total_num];
+    
+
+    /* Save datas in (continuous) buffer.
+     */
+    for (int i = 0; i < total_num; ++i) {
+        buf[i].angle    = data[i].angle;
+        buf[i].class_id = data[i].class_id;
+        buf[i].octave   = data[i].octave;
+        buf[i].point_x  = data[i].pt.x;
+        buf[i].point_y  = data[i].pt.y;
+        buf[i].response = data[i].response;
+        buf[i].size     = data[i].size;
+    }
+
+    /* Write data into file.
+     */
+    fWriteData(fs, (char*) buf, sizeof(struct _pack) * total_num);
+
+    delete [] buf;
+}
+
+void Image::saveImageData(std::ofstream &fs) {
+
+    /* filename */
+    fWriteData(fs, _fileName);
+
+    /* cv::Mat _data */
+    fWriteData(fs, _data);
+    fWriteData(fs, _orb_kpts);
+    fWriteData(fs, _orb_desc);
 }
 
 
@@ -113,6 +187,7 @@ void ImageDB::readVideo(std::string fileName) {
         // TODO: exception;
     }
 
+    int idx = 0;    // frame index
     while (1) {
         cv::Mat frame;
         cap >> frame;
@@ -121,6 +196,7 @@ void ImageDB::readVideo(std::string fileName) {
             break;
         }
 
+        std::string fname = fileName+"_"+std::to_string(idx++);
         _images.emplace_back( std::make_shared<Image>(frame, fileName) );
     }
 
@@ -140,4 +216,49 @@ void ImageDB::readVideo(std::string fileName) {
 
     cv::destroyWindow("Window");
 #endif
+}
+
+void ImageDB::loadDB(void) {
+    std::ifstream dbfp(_db_file_name);
+
+    if (! dbfp.is_open()) {
+        std::cerr << "[ERROR] Can't open image DB file (load) '" << _db_file_name << "'\n";
+        exit(1);
+    }
+
+    /* Load DB data from a file.
+     */
+
+    dbfp.close();
+
+    return;
+}
+
+void ImageDB::saveDB(void) {
+    /*
+    std::ofstream dbfp(_db_file_name);
+
+    if (! dbfp.is_open()) {
+        std::cerr << "[ERROR] Can't open image DB file '" << _db_file_name << "'\n";
+        exit(1);
+    }
+    */
+    std::cout << "[INFO] SaveDB is called()\n";
+
+    std::ofstream fs(_db_file_name);
+    if (! fs.is_open()) {
+        std::cerr << "[ERROR] Can't open image DB file (save) '" << _db_file_name << "'\n";
+        exit(1);
+    }
+
+    /* Save DB data into a file.
+     */
+    for (auto &img: _images) {
+        img->saveImageData(fs);
+    }
+
+    fs.close();
+
+
+    return;
 }

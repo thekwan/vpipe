@@ -16,10 +16,14 @@ public:
     ~ReadImages(void) {}
     virtual bool Run(job_context &context);
     virtual bool Stop(void);
+
 private:
     program_args  &_pargs;
     std::string    _iflist;
     std::string    _ivideo;
+
+    bool           _save_db;
+    bool           _load_db;
 };
 
 #endif

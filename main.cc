@@ -10,6 +10,9 @@
 
 int main(int argc, char *argv[]) {
     //std::cout << "This is a comptuer vision pipeline simulator program.\n";
+#if defined(DEBUG_OPENCV)
+    cv::setBreakOnError(true);
+#endif
 
     PipeSimulator psim;
 

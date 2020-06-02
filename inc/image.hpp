@@ -21,6 +21,10 @@ public:
     Image(cv::Mat data, std::string fileName);
     ~Image();
 
+    std::string getName(void) {
+        return _fileName;
+    }
+    void saveImageData(std::ofstream &fs);
     cv::Size getImageSize(void);
     void copyData(cv::Mat &data);
     const cv::Mat* getDataPtr(void);
@@ -32,6 +36,12 @@ public:
     std::vector<cv::KeyPoint> getOrbKeyPoints(void);
     cv::Mat getOrbDescriptors(void);
 private:
+
+    void fWriteData(std::ofstream &fs, char *data, int size);
+    void fWriteData(std::ofstream &fs, const std::string &data);
+    void fWriteData(std::ofstream &fs, cv::Mat &data);
+    void fWriteData(std::ofstream &fs, std::vector<cv::KeyPoint> &data);
+
     cv::Mat  _data;
     const std::string _fileName;
     /* ORB: features & descriptors
@@ -52,12 +62,21 @@ public:
     ImageDB(void);
     ~ImageDB(void);
 
+    /* Image DB member APIs
+     */
+    void loadDB(void);
+    void saveDB(void);
+
     int getImageNum(void);
     void readImages(std::string fileNameList);
     void readVideo(std::string fileNameList);
     std::shared_ptr<Image> getImage(int index);
 private:
     std::vector<std::shared_ptr<Image>>  _images;
+
+    /* Image DB member vars
+     */
+    std::string    _db_file_name = "imagedb.dat";
 };
 
 #endif
